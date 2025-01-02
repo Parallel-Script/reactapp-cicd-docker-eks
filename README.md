@@ -1,70 +1,174 @@
-# Getting Started with Create React App
+# CI/CD Pipeline for Node.js Application
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Project Overview
+This project demonstrates a complete CI/CD pipeline for a Node.js application. The pipeline is designed to automate testing, building, and deploying the application to a Kubernetes cluster, ensuring a streamlined and efficient deployment process. Notifications are also integrated to provide real-time feedback on deployment success or failure.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## Features
+1. **Automated Testing**: Runs tests automatically on pull requests to ensure code quality.
+2. **Dockerized Build**: Builds a Docker image for the application.
+3. **Kubernetes Deployment**: Deploys the Docker image to an AWS EKS (Elastic Kubernetes Service) cluster.
+4. **Notifications**: Sends email notifications for successful or failed deployments.
 
-### `npm start`
+---
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Architecture
+- **Jenkins**: Orchestrates the CI/CD pipeline.
+- **AWS EKS**: Hosts the Kubernetes cluster.
+- **Docker Hub**: Stores the Docker images.
+- **GitHub**: Hosts the application code.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+---
 
-### `npm test`
+## Prerequisites
+- AWS account with EKS configured.
+- Jenkins server with the following plugins installed:
+  - NodeJS Plugin
+  - Docker Pipeline Plugin
+  - Email Extension Plugin
+- Docker Hub account.
+- GitHub repository with the application code.
+- AWS CLI and kubectl installed and configured.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## Jenkins Pipeline
+The Jenkinsfile for the pipeline includes the following stages:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. **Clone Code from GitHub**:
+   - Checks out the latest code from the main branch.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+2. **Node.js Build**:
+   - Installs dependencies using `npm install`.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+3. **Build Docker Image**:
+   - Creates a Docker image for the Node.js application.
 
-### `npm run eject`
+4. **Push Docker Image to Docker Hub**:
+   - Authenticates with Docker Hub and pushes the image.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+5. **Deploy to Kubernetes**:
+   - Applies Kubernetes manifests to deploy the application to the EKS cluster.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+6. **Post-Deployment Notifications**:
+   - Sends email notifications based on the success or failure of the deployment.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+---
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Dockerfile
+```dockerfile
+FROM node:20-alpine
 
-## Learn More
+WORKDIR /app
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+COPY package*.json ./
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+RUN npm install
 
-### Code Splitting
+COPY . .
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+EXPOSE 3000
 
-### Analyzing the Bundle Size
+CMD ["npm", "start"]
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+---
 
-### Making a Progressive Web App
+## Kubernetes Manifest
+**nodejsapp.yaml**
+```yaml
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: nodejs-app
+  namespace: default
+  labels:
+    app: nodejs-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nodejs-app
+  template:
+    metadata:
+      labels:
+        app: nodejs-app
+    spec:
+      containers:
+      - name: nodejs-app
+        image: "veeruved/nodejsapp-1.0:latest"
+        ports:
+          - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodejs-app
+  namespace: default
+spec:
+  selector:
+    app: nodejs-app
+  type: LoadBalancer
+  ports:
+  - name: http
+    targetPort: 3000
+    port: 80
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+---
 
-### Advanced Configuration
+## Setup and Configuration
+1. **Jenkins Setup**:
+   - Installed Jenkins on an AWS EC2 t2.medium instance for the master node.
+   - Configured NodeJS plugin with Node.js runtime.
+   - Added GitHub and Docker Hub credentials.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+2. **Kubernetes Cluster**:
+   - Used AWS EKS with one t2.medium instance as the master node and two t2.micro instances as worker nodes.
+   - Configured `aws eks update-kubeconfig` for cluster access.
 
-### Deployment
+3. **GitHub Repository**:
+   - The application code is hosted at: [GitHub Repo](https://github.com/Parallel-Script/reactapp-cicd-docker-eks)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+4. **Docker Hub Repository**:
+   - Docker image pushed to: `veeruved/nodejsapp-1.0`
 
-### `npm run build` fails to minify
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Notifications
+Email notifications are configured in Jenkins using the Email Extension Plugin. Emails are sent to `patilvaradraj18@gmail.com` on deployment success or failure.
+
+---
+
+## How to Run
+1. Push changes to the GitHub repository.
+2. The Jenkins pipeline is triggered automatically.
+3. Upon successful completion:
+   - Docker image is built and pushed to Docker Hub.
+   - Kubernetes manifests are applied to deploy the application to the EKS cluster.
+   - Notifications are sent to the configured email.
+
+---
+
+## Challenges and Solutions
+- **AWS EKS Configuration**:
+  - Ensured proper IAM roles and policies for cluster access.
+- **Docker Image Deployment**:
+  - Configured Docker Hub credentials securely in Jenkins.
+- **Pipeline Debugging**:
+  - Used Jenkins logs extensively to troubleshoot issues.
+
+---
+
+## Future Improvements
+- Integrate a testing stage for unit and integration tests.
+- Add monitoring for Kubernetes pods using tools like Prometheus and Grafana.
+- Enhance security by using AWS Secrets Manager for sensitive credentials.
+
+---
+
+## Conclusion
+This CI/CD pipeline simplifies the deployment of a Node.js application, leveraging Jenkins, Docker, and Kubernetes to provide a scalable and reliable solution. The setup ensures code quality, seamless deployment, and real-time feedback, meeting the requirements of modern DevOps practices.
+
