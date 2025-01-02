@@ -76,7 +76,7 @@ post {
                 to: 'veeruved186@gmail.com', 
                 from: 'jenkins@example.com', 
                 replyTo: 'jenkins@example.com', 
-                mimeType: 'text/html', 
+                mimeType: 'text/html'
                  
             ) 
         } 
