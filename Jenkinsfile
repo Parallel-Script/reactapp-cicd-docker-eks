@@ -41,29 +41,14 @@ pipeline {
      stage('Deploying Node App to Kubernetes') {
       steps {
         script {
-          sh ('aws eks update-kubeconfig --name demo-cluster-1 --region us-east-1')
+          sh ('aws eks update-kubeconfig --name rappcluster --region us-east-1')
           sh "kubectl get ns"
           sh "kubectl apply -f nodejsapp.yaml"
         }
       }
     }
 
-    post {
-        success {
-            emailext(
-                subject: "Deployment Successful",
-                body: "The deployment to EKS was successful!",
-                to: "patilvaradraj18@gmail.com"
-            )
-        }
-        failure {
-            emailext(
-                subject: "Deployment Failed",
-                body: "The deployment to EKS failed. Please check the logs.",
-                to: "patilvaradraj18@gmail.com"
-            )
-        }
-    }
+   
 
   }
 }
